@@ -9,8 +9,6 @@ setup(
     author='Orf',
     author_email='tom@tomforb.es',
     description='Asyncio pipe structures',
-
-    requires=[
-
-    ]
+    install_requires=["asyncio"],
+    requires=["pytest", "asyncio"]
 )
