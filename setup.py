@@ -10,5 +10,4 @@ setup(
     author_email='tom@tomforb.es',
     description='Asyncio pipe structures',
     install_requires=["asyncio"],
-    requires=["pytest", "asyncio"]
 )
