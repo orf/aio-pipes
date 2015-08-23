@@ -1,4 +1,5 @@
 # Asyncio Pipes
+![](https://travis-ci.org/orf/aio-pipes.svg?branch=master)
 
 This module provides a set of pipe-like data structures for use with asyncio-based applications.
 
