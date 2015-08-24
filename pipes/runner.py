@@ -1,4 +1,4 @@
-from asyncio import coroutine
+from asyncio import coroutine, iscoroutine
 from pipes import Input, Output, IterableIO, FileIO
 from collections import Iterable
 from io import TextIOBase
@@ -25,23 +25,22 @@ class Runnable(object):
     def _run(self):
         raise NotImplementedError()
 
-    def __lt__(self, input):
-        if isinstance(input, Input):
-            self.input = input
-        elif isinstance(input, Iterable):
-            self.input = IterableIO(input)
+    def _convert_to_io(self, value):
+        if isinstance(value, (Input, Output)):
+            return value
+        elif isinstance(value, TextIOBase):
+            return FileIO(value)
+        elif isinstance(value, Iterable):
+            return IterableIO(value)
         else:
-            raise RuntimeError("Cannot input {0}".format(type(input)))
+            raise RuntimeError("Cannot type {0} to input or output".format(type(value)))
 
+    def __lt__(self, input):
+        self.input = self._convert_to_io(input)
         return self
 
     def __gt__(self, output):
-        if isinstance(output, Output):
-            self.output = output
-        elif isinstance(output, TextIOBase):
-            self.output = FileIO(output)
-        else:
-            raise RuntimeError("Cannot input {0}".format(type(input)))
+        self.output = self._convert_to_io(output)
         return self
 
 
@@ -76,8 +75,16 @@ class FunctionRunner(Runnable):
         }
 
         while True:
-            data = yield from self.input.read()
-            result = yield from self.func(data, **{p: param_values[p] for p in self.params if p in param_values})
+            try:
+                data = yield from self.input.read()
+            except IOError:
+                continue
+
+            # Suppoet lambdas and other non-coroutine functions
+            result = self.func(data, **{p: param_values[p] for p in self.params if p in param_values})
+
+            if iscoroutine(result):
+                result = yield from result
 
             if result is not None:
                 yield from self.output.write(result)

@@ -1,6 +1,12 @@
 import pytest
 from pipes import Pipeline
 from . import TestIO
+from asyncio import get_event_loop
+
+
+@pytest.fixture
+def run():
+    return get_event_loop().run_until_complete
 
 
 @pytest.fixture

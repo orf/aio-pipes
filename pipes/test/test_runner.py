@@ -12,6 +12,11 @@ def test_get_args():
     assert runner.params == {"output"}
 
 
+def test_lambda_args():
+    runner = FunctionRunner(lambda x: x)
+    assert runner.params == set()
+
+
 def test_get_wrapped_args():
     @decorator
     def dec_no_args(func, *args, **kwargs):

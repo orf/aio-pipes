@@ -35,7 +35,7 @@ def test_shorthand_io(pipeline):
     assert isinstance(pipeline.output, FileIO)
 
 
-def test_return(pipeline):
+def test_return(pipeline, run):
     """
     Test that pipes can just return a single value instead of using an output
     """
@@ -51,37 +51,42 @@ def test_return(pipeline):
     pipeline < input
     pipeline > output
 
-    get_event_loop().run_until_complete(
-        pipeline.start()
-    )
+    run(pipeline.start())
 
     assert output.q == list(range(1, 11))
 
 
-def test_pipes(pipeline, test_io):
+def test_pipes(pipeline, test_io, run):
     @coroutine
     def adder(input, output: Output):
         yield from output.write(input + 1)
 
-    pipeline = pipeline | adder
+    new_pipeline = pipeline | adder
 
     input = IterableIO(range(10))
 
-    pipeline < input
+    new_pipeline < input
 
-    get_event_loop().run_until_complete(
-        pipeline.start()
-    )
+    run(new_pipeline.start())
 
     assert test_io.q == [i + 1 for i in range(10)]
 
     # Add another adder
-    pipeline = pipeline | adder
+    new_pipeline = pipeline | adder | adder
+    new_pipeline < input
     input.reset()
     test_io.reset()
 
-    get_event_loop().run_until_complete(
-        pipeline.start()
-    )
+    run(new_pipeline.start())
 
     assert test_io.q == [i + 2 for i in range(10)]
+
+    # Use lambda
+    new_pipeline = pipeline | (lambda x: x + 1)
+    new_pipeline < input
+    input.reset()
+    test_io.reset()
+
+    run(new_pipeline.start())
+
+    assert test_io.q == [i + 1 for i in range(10)]

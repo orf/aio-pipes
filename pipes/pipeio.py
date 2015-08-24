@@ -33,11 +33,23 @@ class FileIO(Input, Output):
 
     @coroutine
     def read(self):
-        return json.loads(self.fd.readline())
+        line = self.fd.readline()
+
+        if not line:
+            yield from self.close()
+            raise IOFinished()
+
+        try:
+            return json.loads(line)
+        except Exception:
+            raise IOError("Could not load JSON object")
 
     @coroutine
     def write(self, data):
-        self.fd.write(json.dumps(data) + "\n")
+        try:
+            self.fd.write(json.dumps(data) + "\n")
+        except Exception:
+            raise IOError("Could not dump JSON object")
 
     @coroutine
     def close(self):
