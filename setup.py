@@ -9,5 +9,5 @@ setup(
     author='Orf',
     author_email='tom@tomforb.es',
     description='Asyncio pipe structures',
-    install_requires=["asyncio"],
+    install_requires=["asyncio", "decorator"],
 )

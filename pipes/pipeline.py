@@ -47,6 +47,5 @@ class Pipeline(Runnable):
 
         yield from wait(pipe_futures)
 
-
     def __repr__(self):
         return "<Pipeline {name}>".format(name=self.name)

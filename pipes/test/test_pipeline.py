@@ -1,103 +1,87 @@
-from .. import Pipeline
-from ..pipeio import Input, Output, IterableIO, FileIO
-from asyncio import Future, coroutine, get_event_loop
+from asyncio import coroutine, get_event_loop
 import io
 
-
-class TestIO(Input, Output):
-    def __init__(self):
-        self.q = []
-        self.cursor = 0
-        self.closed = False
-        self.waiters = []
-
-    @coroutine
-    def write(self, data):
-        self.q.append(data)
-
-        if self.waiters:
-            future = self.q[self.cursor + 1]
-            future.set_result(data)
-            self.cursor += 1
-
-    @coroutine
-    def read(self):
-        if self.closed:
-            raise RuntimeError("Read called on closed")
-
-        if len(self.q) > self.cursor:
-            future = Future()
-            self.waiters.append(future)
-            return future
-
-        d = self.q[self.cursor]
-        self.cursor += 1
-        return d
-
-    @coroutine
-    def close(self):
-        self.closed = True
+from .. import Pipeline
+from ..pipeio import Output, IterableIO, FileIO
+from . import TestIO
 
 
-def test_pipeline_concat():
-    io = TestIO()
-
-    pipe = Pipeline("Test", io, io) | (lambda x: x)
+def test_pipeline_concat(pipeline, test_io):
+    pipe = pipeline | (lambda x: x)
+    pipe < test_io
 
     assert isinstance(pipe, Pipeline)
-    assert pipe.input is io
-    assert pipe.output is io
+    assert pipe.input is test_io
+    assert pipe.output is test_io
     assert len(pipe.pipes) == 1
 
 
-def test_io():
+def test_io(pipeline):
     input, output = TestIO(), TestIO()
-    pipe = Pipeline("Test")
-    pipe < input
-    pipe > output
+    pipeline < input
+    pipeline > output
 
-    assert pipe.input is input
-    assert pipe.output is output
+    assert pipeline.input is input
+    assert pipeline.output is output
 
 
-def test_shorthand_io():
+def test_shorthand_io(pipeline):
     input, output = range(10), io.StringIO()
 
-    pipe = Pipeline("Test")
-    pipe < input
-    pipe > output
+    pipeline < input
+    pipeline > output
 
-    assert isinstance(pipe.input, IterableIO)
-    assert isinstance(pipe.output, FileIO)
+    assert isinstance(pipeline.input, IterableIO)
+    assert isinstance(pipeline.output, FileIO)
 
 
-def test_pipes():
+def test_return(pipeline):
+    """
+    Test that pipes can just return a single value instead of using an output
+    """
     @coroutine
-    def adder(input, output: Output):#
-        yield from output.write(input + 1)
+    def adder_return(input):
+        return input + 1
 
-    pipe = Pipeline("Test") | adder
+    pipeline = pipeline | adder_return
 
     input = IterableIO(range(10))
     output = TestIO()
 
-    pipe < input
-    pipe > output
+    pipeline < input
+    pipeline > output
 
     get_event_loop().run_until_complete(
-        pipe.start()
+        pipeline.start()
     )
 
-    assert output.q == [i + 1 for i in range(10)]
+    assert output.q == list(range(1, 11))
+
+
+def test_pipes(pipeline, test_io):
+    @coroutine
+    def adder(input, output: Output):
+        yield from output.write(input + 1)
+
+    pipeline = pipeline | adder
+
+    input = IterableIO(range(10))
+
+    pipeline < input
+
+    get_event_loop().run_until_complete(
+        pipeline.start()
+    )
+
+    assert test_io.q == [i + 1 for i in range(10)]
 
     # Add another adder
-    pipe = pipe | adder
+    pipeline = pipeline | adder
     input.reset()
-    output = TestIO()
-    pipe > output
+    test_io.reset()
 
     get_event_loop().run_until_complete(
-        pipe.start()
+        pipeline.start()
     )
 
-    assert output.q == [i + 2 for i in range(10)]
+    assert test_io.q == [i + 2 for i in range(10)]

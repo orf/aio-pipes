@@ -79,4 +79,5 @@ class FunctionRunner(Runnable):
             data = yield from self.input.read()
             result = yield from self.func(data, **{p: param_values[p] for p in self.params if p in param_values})
 
-            self.output.write(result)
+            if result is not None:
+                yield from self.output.write(result)

@@ -4,6 +4,7 @@ python:
   - "3.4"
 # command to install dependencies
 install:
-  - pip install --upgrade pip pytest
+  - pip install --upgrade pip pytest coverage coveralls
   - pip install .
-script: py.test -l -v pipes/
+script: coverage run --source=pipes -m py.test -l -v pipes/
+after_success: coveralls
