@@ -6,5 +6,5 @@ python:
 install:
   - pip install --upgrade pip pytest coverage coveralls
   - pip install .
-script: coverage run --source=pipes -m py.test -l -v pipes/
+script: coverage run --source=pipes -m py.test -l -v test/
 after_success: coveralls
