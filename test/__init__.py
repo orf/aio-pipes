@@ -1,6 +1,7 @@
 from asyncio import coroutine, Future
 from pipes import Input, Output
 
+
 class TestIO(Input, Output):
     def __init__(self):
         self.q = []

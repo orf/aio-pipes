@@ -1,4 +1,4 @@
-from ..runner import FunctionRunner
+from pipes.runner import FunctionRunner
 import functools
 from asyncio import coroutine
 from decorator import decorator

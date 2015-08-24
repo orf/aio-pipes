@@ -1,8 +1,8 @@
 from asyncio import coroutine, get_event_loop
 import io
 
-from .. import Pipeline
-from ..pipeio import Output, IterableIO, FileIO
+from pipes import Pipeline
+from pipes.pipeio import Output, IterableIO, FileIO
 from . import TestIO
 
 
