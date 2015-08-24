@@ -1,5 +1,6 @@
 # Asyncio Pipes
 ![](https://travis-ci.org/orf/aio-pipes.svg?branch=master)
+[![Coverage Status](https://coveralls.io/repos/orf/aio-pipes/badge.svg?branch=master&service=github)](https://coveralls.io/github/orf/aio-pipes?branch=master)
 
 This module provides a set of pipe-like data structures for use with asyncio-based applications.
 

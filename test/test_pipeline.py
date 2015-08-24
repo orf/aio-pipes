@@ -4,6 +4,14 @@ import io
 from pipes import Pipeline
 from pipes.pipeio import Output, IterableIO, FileIO
 from . import TestIO
+import pytest
+
+
+def test_pipeline_raises_runtimetimerror(pipeline, run):
+    with pytest.raises(RuntimeError):
+        run(pipeline.start())
+
+        pipeline._convert_to_io(None)
 
 
 def test_pipeline_concat(pipeline, test_io):

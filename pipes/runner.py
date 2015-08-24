@@ -78,6 +78,7 @@ class FunctionRunner(Runnable):
             try:
                 data = yield from self.input.read()
             except IOError:
+                # ToDo: do something clever here to stop infinite loop
                 continue
 
             # Suppoet lambdas and other non-coroutine functions
