@@ -1,4 +1,4 @@
-from pipes.runner import FunctionRunner
+from aiopipes.runner import FunctionRunner
 import functools
 from asyncio import coroutine
 from decorator import decorator

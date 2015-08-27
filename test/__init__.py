@@ -1,5 +1,5 @@
 from asyncio import coroutine, Future
-from pipes import Input, Output
+from aiopipes import Input, Output
 
 
 class TestIO(Input, Output):

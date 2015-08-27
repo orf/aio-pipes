@@ -1,4 +1,4 @@
-from pipes.pipeio import FileIO
+from aiopipes.pipeio import FileIO
 from io import StringIO
 import json
 

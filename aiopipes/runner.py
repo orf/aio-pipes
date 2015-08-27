@@ -1,5 +1,5 @@
 from asyncio import coroutine, iscoroutine
-from pipes import Input, Output, IterableIO, FileIO
+from aiopipes import Input, Output, IterableIO, FileIO
 from collections import Iterable
 from io import TextIOBase
 from .pipeio import IOFinished

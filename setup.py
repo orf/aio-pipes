@@ -1,9 +1,9 @@
 from setuptools import setup
 
 setup(
-    name='aio-pipes',
+    name='aio.pipes',
     version='0.1',
-    packages=['pipes'],
+    packages=['aiopipes'],
     url='',
     license='',
     author='Orf',

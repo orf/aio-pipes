@@ -1,5 +1,5 @@
 from . import QueueIO
-from pipes.runner import Runnable
+from aiopipes.runner import Runnable
 from collections import Iterable
 from .runner import FunctionRunner
 import inspect
@@ -28,7 +28,7 @@ class Pipeline(Runnable):
 
     @coroutine
     def _run(self):
-        # Hook all our pipes together
+        # Hook all our aiopipes together
         internal_ios = [QueueIO() for _ in self.pipes]
 
         for idx, pipe in enumerate(self.pipes):

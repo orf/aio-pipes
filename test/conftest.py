@@ -1,5 +1,5 @@
 import pytest
-from pipes import Pipeline
+from aiopipes import Pipeline
 from . import TestIO
 from asyncio import get_event_loop
 

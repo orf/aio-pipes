@@ -1,8 +1,8 @@
 from asyncio import coroutine, get_event_loop
 import io
 
-from pipes import Pipeline
-from pipes.pipeio import Output, IterableIO, FileIO
+from aiopipes import Pipeline
+from aiopipes.pipeio import Output, IterableIO, FileIO
 from . import TestIO
 import pytest
 
@@ -11,6 +11,7 @@ def test_pipeline_raises_runtimetimerror(pipeline, run):
     with pytest.raises(RuntimeError):
         run(pipeline.start())
 
+    with pytest.raises(RuntimeError):
         pipeline._convert_to_io(None)
 
 
@@ -45,7 +46,7 @@ def test_shorthand_io(pipeline):
 
 def test_return(pipeline, run):
     """
-    Test that pipes can just return a single value instead of using an output
+    Test that aiopipes can just return a single value instead of using an output
     """
     @coroutine
     def adder_return(input):
