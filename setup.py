@@ -1,8 +1,8 @@
 from setuptools import setup
 
 setup(
-    name='aio.pipes',
-    version='0.1',
+    name='aiopipes',
+    version='0.2',
     packages=['aiopipes'],
     url='',
     license='',

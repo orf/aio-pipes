@@ -11,11 +11,21 @@ class Queue(object):
         self._queue = queue or ioQueue()
         self.finished = False
 
+    @property
+    def items_queued(self):
+        return self._queue.qsize()
+
     @coroutine
     def get_object(self):
+        if self.finished:
+            return
+
         obj = yield from self._queue.get()
 
         if isinstance(obj, QueueDone):
+            for getter in self._queue._getters:
+                getter.set_result(None)
+
             obj.future.set_result(True)
             self.finished = True
         else:
@@ -24,7 +34,6 @@ class Queue(object):
     @coroutine
     def put_object(self, object):
         yield from self._queue.put(object)
-
 
     @coroutine
     def close(self):

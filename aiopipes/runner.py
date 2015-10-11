@@ -1,38 +1,74 @@
-from asyncio import coroutine, iscoroutine
+from asyncio import coroutine, iscoroutine, wait, async, FIRST_COMPLETED
 from aiopipes import Input, Output, IterableIO, FileIO
 from collections import Iterable
 from io import TextIOBase
 from .pipeio import IOFinished
+from .status import StatusMixin
 import inspect
+import traceback
+import time
 
 
-class Runnable(object):
-    def __init__(self, input: Input=None, output: Output=None):
-        self.input = input
-        self.output = output
+class Runnable(StatusMixin):
+    def __init__(self, input=None, output=None):
+        self.input = self._convert_to_io(input, _raise=False)
+        self.output = self._convert_to_io(output)
+        self.concurrency = 1
+        self.started = None
+        self.worker_futures = []
+
+        super().__init__()
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    def log(self, msg):
+        print(msg)
+
+    @property
+    def runtime(self):
+        if self.started is None:
+            return 0
+
+        return time.time() - self.started
 
     @coroutine
     def start(self):
-        if self.input is None or self.output is None:
-            raise RuntimeError("Cannot start pipeline without an input or output")
+        @coroutine
+        def runner_task(id):
+            try:
+                yield from self._run()
+            except IOFinished:
+                return
+            except Exception as ex:
+                self.status.error(ex)
+
+        self.worker_futures = [async(runner_task(i)) for i in range(self.concurrency)]
+        self.started = time.time()
 
         try:
-            yield from self._run()
-        except IOFinished:
-            yield from self.output.close()
+            while True:
+                done, pending = yield from wait(self.worker_futures, return_when=FIRST_COMPLETED)
+                self.worker_futures = list(pending)
+                if not pending:
+                    break
+        finally:
+            if self.output:
+                yield from self.output.close()
 
     @coroutine
     def _run(self):
         raise NotImplementedError()
 
-    def _convert_to_io(self, value):
+    def _convert_to_io(self, value, _raise=False):
         if isinstance(value, (Input, Output)):
             return value
         elif isinstance(value, TextIOBase):
             return FileIO(value)
         elif isinstance(value, Iterable):
             return IterableIO(value)
-        else:
+        elif _raise:
             raise RuntimeError("Cannot type {0} to input or output".format(type(value)))
 
     def __lt__(self, input):
@@ -43,23 +79,34 @@ class Runnable(object):
         self.output = self._convert_to_io(output)
         return self
 
+    def parallel(self, concurrency):
+        self.concurrency = concurrency
+        return self
+
+
+class _Continue(object):
+    def __init__(self, data, done=None, max=None):
+        self.data = data
+        self.max = max
+        self.done = done
+
 
 class FunctionRunner(Runnable):
     def __init__(self, func, input=None, output=None):
         self.func = func
-        self.params = self._get_params()
-
         super().__init__(input, output)
 
-    def _get_params(self):
-        func_args, allowed_args = set(), {"output"}
-        func = self.func
+    @property
+    def name(self):
+        return self.func.__name__
+
+    def _extract_params(self, func):
+        func_args = set()
 
         while True:
             args = inspect.getfullargspec(func)
             for arg in args.args:
-                if arg in allowed_args:
-                    func_args.add(arg)
+                func_args.add(arg)
 
             if hasattr(func, "__wrapped__"):
                 func = func.__wrapped__
@@ -68,24 +115,56 @@ class FunctionRunner(Runnable):
 
         return func_args
 
-    @coroutine
-    def _run(self):
-        param_values = {
-            "output": self.output
+    def _get_params(self, func, allowed_args=None):
+        params = self._extract_params(func)
+        if allowed_args is None:
+            return params
+        return params.intersection(allowed_args)
+
+    def _get_param_values(self):
+        @coroutine
+        def _output(data):
+            yield from self.output.write(data)
+
+        return {
+            "output": _output,
+            "_continue": _Continue
         }
 
+    @coroutine
+    def _run(self):
+        param_values = self._get_param_values()
+        func_params = self._get_params(self.func, set(param_values.keys()))
+
         while True:
-            try:
-                data = yield from self.input.read()
-            except IOError:
-                # ToDo: do something clever here to stop infinite loop
-                continue
+            data = yield from self.input.read()
+            if data is None:
+                pass
 
-            # Suppoet lambdas and other non-coroutine functions
-            result = self.func(data, **{p: param_values[p] for p in self.params if p in param_values})
+            params = {p: param_values[p] for p in func_params if p in param_values}
 
-            if iscoroutine(result):
-                result = yield from result
+            with self.status.subtask("percentage_done", "done_count", "max_count") as subtask:
+                subtask.percentage("done", "done_count", "max_count")
 
-            if result is not None:
-                yield from self.output.write(result)
+                while True:
+                    try:
+                        result = self.func(data, **params)
+                        if iscoroutine(result):
+                            result = yield from result
+                        subtask.inc("done_count")
+
+                    except Exception as ex:
+                        subtask.error(ex, data)
+                    else:
+                        if isinstance(result, _Continue):
+                            data = result.data
+                            if result.max:
+                                subtask.set("max_count", result.max)
+                            if result.done:
+                                subtask.set("done_count", result.done)
+                            continue
+
+                        if result is not None:
+                            yield from self.output.write(result)
+
+                    break
