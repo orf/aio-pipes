@@ -92,8 +92,8 @@ class ConsoleMonitor(BaseMonitor):
         w("Runtime: {i[runtime]:.0f} seconds")
 
         for sub_pipe in info["pipes"]:
-            errors = "[Errors: {}]".format(len(sub_pipe["error_list"]))\
-                if sub_pipe.get("error_list", None) else ""
+            errors = "[Errors: {}]".format(len(sub_pipe["task"]["error_list"]))\
+                if sub_pipe["task"].get("error_list", None) else ""
             w(pre(1) + " {p[name]} {errors}", p=sub_pipe, errors=errors)
             inp = sub_pipe["input"]
             if "percentage_done" in inp:

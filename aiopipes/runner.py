@@ -1,12 +1,12 @@
 from asyncio import coroutine, iscoroutine, wait, async, FIRST_COMPLETED
-from aiopipes import Input, Output, IterableIO, FileIO
 from collections import Iterable
 from io import TextIOBase
+import inspect
+import time
+
+from aiopipes import Input, Output, IterableIO, FileIO
 from .pipeio import IOFinished
 from .status import StatusMixin
-import inspect
-import traceback
-import time
 
 
 class Runnable(StatusMixin):
@@ -36,7 +36,7 @@ class Runnable(StatusMixin):
     @coroutine
     def start(self):
         @coroutine
-        def runner_task(id):
+        def runner_task():
             try:
                 yield from self._run()
             except IOFinished:
@@ -44,7 +44,17 @@ class Runnable(StatusMixin):
             except Exception as ex:
                 self.status.error(ex)
 
-        self.worker_futures = [async(runner_task(i)) for i in range(self.concurrency)]
+        if not self.concurrency:
+            # Just run a single runner_task don't bother with multiple stuff.
+            fut = runner_task()
+            self.worker_futures = [fut]
+            try:
+                yield from fut
+            finally:
+                if self.output:
+                    yield from self.output.close()
+
+        self.worker_futures = [async(runner_task()) for _ in range(self.concurrency)]
         self.started = time.time()
 
         try:
