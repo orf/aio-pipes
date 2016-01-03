@@ -9,10 +9,7 @@ import pytest
 
 def test_pipeline_raises_runtimetimerror(pipeline, run):
     with pytest.raises(RuntimeError):
-        run(pipeline.start())
-
-    with pytest.raises(RuntimeError):
-        pipeline._convert_to_io(None)
+        pipeline._convert_to_io(None, _raise=True)
 
 
 def test_pipeline_concat(pipeline, test_io):
@@ -67,8 +64,8 @@ def test_return(pipeline, run):
 
 def test_pipes(pipeline, test_io, run):
     @coroutine
-    def adder(input, output: Output):
-        yield from output.write(input + 1)
+    def adder(input, output):
+        yield from output(input + 1)
 
     new_pipeline = pipeline | adder
 

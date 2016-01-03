@@ -1,8 +1,14 @@
-from asyncio import coroutine, sleep, async
+from asyncio import coroutine, sleep
+
+try:
+    from asyncio import ensure_future
+except ImportError:
+    from asyncio import async as ensure_future
 
 from .pipeline import Pipeline
 from .runner import Runnable
 from .pipeio import Output, FileIO
+import shutil
 
 
 class BaseMonitor(Runnable):
@@ -20,7 +26,7 @@ class BaseMonitor(Runnable):
 
     @coroutine
     def monitor(self, future):
-        self.monitor_future = async(future)
+        self.monitor_future = ensure_future(future)
         yield from self.start()
 
 
@@ -68,6 +74,9 @@ class ConsoleMonitor(BaseMonitor):
 
     @coroutine
     def display(self, info):
+        columns, lines = shutil.get_terminal_size()
+        shutil.get_archive_formats()
+
         outputs = []
 
         def w(msg, **extra):

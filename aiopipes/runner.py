@@ -1,4 +1,9 @@
-from asyncio import coroutine, iscoroutine, wait, async, FIRST_COMPLETED
+from asyncio import coroutine, iscoroutine, wait, FIRST_COMPLETED, get_event_loop
+try:
+    from asyncio import ensure_future
+except ImportError:
+    from asyncio import async as ensure_future
+
 from collections import Iterable
 from io import TextIOBase
 import inspect
@@ -33,6 +38,11 @@ class Runnable(StatusMixin):
 
         return time.time() - self.started
 
+    def run_until_complete(self, ev=None):
+        ev = ev or get_event_loop()
+
+        ev.run_until_complete(self.start())
+
     @coroutine
     def start(self):
         @coroutine
@@ -54,7 +64,7 @@ class Runnable(StatusMixin):
                 if self.output:
                     yield from self.output.close()
 
-        self.worker_futures = [async(runner_task()) for _ in range(self.concurrency)]
+        self.worker_futures = [ensure_future(runner_task()) for _ in range(self.concurrency)]
         self.started = time.time()
 
         try:

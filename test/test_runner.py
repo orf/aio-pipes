@@ -9,12 +9,12 @@ def test_get_args():
         pass
 
     runner = FunctionRunner(test)
-    assert runner.params == {"output"}
+    assert runner._get_params(test, {"output"}) == {"output"}
 
 
 def test_lambda_args():
     runner = FunctionRunner(lambda x: x)
-    assert runner.params == set()
+    assert runner._get_params(runner.func, {}) == set()
 
 
 def test_get_wrapped_args():
@@ -28,7 +28,7 @@ def test_get_wrapped_args():
         return
 
     runner = FunctionRunner(test_function)
-    assert runner.params == {"output"}
+    assert runner._get_params(test_function, {"output"}) == {"output"}
 
     @decorator
     def dec_with_args(func, *args, output, **kwargs):
@@ -40,4 +40,4 @@ def test_get_wrapped_args():
         return
 
     runner = FunctionRunner(test_function2)
-    assert runner.params == {"output"}
+    assert runner._get_params(test_function2, {"output"}) == {"output"}

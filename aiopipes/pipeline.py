@@ -1,6 +1,11 @@
 from collections import Iterable
 import inspect
-from asyncio import coroutine, wait, async
+from asyncio import coroutine, wait
+
+try:
+    from asyncio import ensure_future
+except ImportError:
+    from asyncio import async as ensure_future
 
 from . import QueueIO
 from aiopipes.runner import Runnable
@@ -50,7 +55,7 @@ class Pipeline(Runnable):
         self.pipes[-1] > self.output
 
         self.worker_futures = [
-            async(pipe.start()) for pipe in self.pipes
+            ensure_future(pipe.start()) for pipe in self.pipes
             ]
 
         yield from wait(self.worker_futures)

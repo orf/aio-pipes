@@ -4,6 +4,7 @@ import functools
 
 def unique(key):
     seen_keys = set()
+
     @functools.wraps(unique)
     def _inner(item):
         if isinstance(item, collections.Mapping):
